@@ -10,8 +10,7 @@ What this module does:
     1. Opens the Olist orders dataset.
     2. Reads each row as a dictionary.
     3. Stores all order records in a list.
-    4. Displays the number of records loaded.
-    5. Displays the column names and the first order.
+    4. Displays diagnostic information when run directly.
 
 Why it is needed:
     OpsIQ needs to load business data before it can inspect,
@@ -43,25 +42,21 @@ def open_order():
         newline="",
         encoding="utf-8-sig",
     ) as file:
-
         reader = csv.DictReader(file)
-
         orders = list(reader)
 
-        return orders
+    return orders
 
 
-# Load the order records by calling the function.
-orders = open_order()
+if __name__ == "__main__":
+    # Load the order records when this file is run directly.
+    orders = open_order()
 
-# Display the total number of records loaded.
-print("Total orders loaded:", len(orders))
+    # Display diagnostic information.
+    print("Total orders loaded:", len(orders))
 
-# Display the column names from the first order.
-if orders:
-    print("Column names:", orders[0].keys())
-
-    # Display the first order so we can inspect its values.
-    print("First order record:", orders[0])
-else:
-    print("The CSV file contains no order records.")
+    if orders:
+        print("Column names:", orders[0].keys())
+        print("First order record:", orders[0])
+    else:
+        print("The CSV file contains no order records.")
