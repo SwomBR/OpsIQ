@@ -4,23 +4,23 @@ OpsIQ - Business Operations Intelligence Platform
 Module: business_report.py
 
 Purpose:
-    Generate a combined business report containing:
+    Generate a consolidated business report covering:
     1. Order summary.
     2. Delivery performance.
     3. Priority delivery exceptions.
-    4. Sales revenue and freight charges.
-    5. Average product value per order.
-    6. Payment method breakdown.
+    4. Sales and payment analytics.
+    5. Product and category performance.
 """
 
 from src.data_loader import open_order
 from src.delivery_analyzer import analyze_delivery_performance
 from src.delivery_exceptions import find_delivery_exceptions
 from src.sales_analyzer import analyze_sales, load_csv
+from src.product_analyzer import analyze_products
 
 
-def generate_business_report(orders, sales_report=None):
-    """Generate a combined business summary report."""
+def generate_business_report(orders, sales_report=None, product_report=None):
+    """Generate a consolidated business summary report."""
 
     if not orders:
         print("No order data available.")
@@ -34,15 +34,12 @@ def generate_business_report(orders, sales_report=None):
         if order.get("order_status") == "delivered"
     )
 
-    delivered_percentage = (
-        delivered_orders / total_orders
-    ) * 100
-
+    delivered_percentage = delivered_orders / total_orders * 100
     exceptions = find_delivery_exceptions(orders)
 
-    print("\n" + "=" * 50)
-    print("       OPSIQ BUSINESS SUMMARY REPORT")
-    print("=" * 50)
+    print("\n" + "=" * 55)
+    print("          OPSIQ BUSINESS SUMMARY REPORT")
+    print("=" * 55)
 
     print(f"Total orders: {total_orders:,}")
     print(f"Delivered orders: {delivered_orders:,}")
@@ -66,19 +63,19 @@ def generate_business_report(orders, sales_report=None):
     if sales_report is not None:
         print("\n--- Sales & Payment Analytics ---")
         print(
-            "Total product revenue: "
+            f"Total product revenue: "
             f"{sales_report['total_product_revenue']:,.2f}"
         )
         print(
-            "Total freight charges: "
+            f"Total freight charges: "
             f"{sales_report['total_freight_charges']:,.2f}"
         )
         print(
-            "Orders with item records: "
+            f"Orders with item records: "
             f"{sales_report['total_orders']:,}"
         )
         print(
-            "Average product value per order: "
+            f"Average product value per order: "
             f"{sales_report['average_order_value']:,.2f}"
         )
 
@@ -89,9 +86,35 @@ def generate_business_report(orders, sales_report=None):
         ].items():
             print(f"{method}: {value:,.2f}")
 
-    print("\n" + "=" * 50)
-    print("       END OF OPSIQ REPORT")
-    print("=" * 50)
+    if product_report is not None:
+        print("\n--- Product Performance Analytics ---")
+        print(f"Products in catalog: {product_report['total_products']:,}")
+        print(
+            "Products missing category: "
+            f"{product_report['products_missing_category']:,}"
+        )
+
+        print("\nTop 5 categories by revenue:")
+
+        for category in product_report["top_categories"][:5]:
+            print(
+                f"{category['category']}: "
+                f"Revenue = {category['revenue']:,.2f}, "
+                f"Items sold = {category['quantity_sold']:,}"
+            )
+
+        print("\nTop 5 products by quantity sold:")
+
+        for product in product_report["top_products"][:5]:
+            print(
+                f"Product ID: {product['product_id']} | "
+                f"Items sold: {product['quantity_sold']:,} | "
+                f"Revenue: {product['revenue']:,.2f}"
+            )
+
+    print("\n" + "=" * 55)
+    print("             END OF OPSIQ REPORT")
+    print("=" * 55)
 
 
 if __name__ == "__main__":
@@ -100,11 +123,31 @@ if __name__ == "__main__":
     order_items = load_csv(
         "data/raw/olist_order_items_dataset.csv"
     )
-
     payments = load_csv(
         "data/raw/olist_order_payments_dataset.csv"
+    )
+    products = load_csv(
+        "data/raw/olist_products_dataset.csv"
+    )
+    translations = load_csv(
+        "data/raw/product_category_name_translation.csv"
     )
 
     sales_report = analyze_sales(order_items, payments)
 
-    generate_business_report(orders, sales_report)
+    category_translations = {
+        row["product_category_name"]: row["product_category_name_english"]
+        for row in translations
+    }
+
+    product_report = analyze_products(
+        order_items,
+        products,
+        category_translations,
+    )
+
+    generate_business_report(
+        orders,
+        sales_report,
+        product_report,
+    )
