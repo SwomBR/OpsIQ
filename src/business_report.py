@@ -1,3 +1,4 @@
+
 """
 OpsIQ - Business Operations Intelligence Platform
 
@@ -10,6 +11,7 @@ Purpose:
     3. Priority delivery exceptions.
     4. Sales and payment analytics.
     5. Product and category performance.
+    6. Customer behavior and geographic distribution.
 """
 
 from src.data_loader import open_order
@@ -17,9 +19,15 @@ from src.delivery_analyzer import analyze_delivery_performance
 from src.delivery_exceptions import find_delivery_exceptions
 from src.sales_analyzer import analyze_sales, load_csv
 from src.product_analyzer import analyze_products
+from src.customer_analyzer import analyze_customers
 
 
-def generate_business_report(orders, sales_report=None, product_report=None):
+def generate_business_report(
+    orders,
+    sales_report=None,
+    product_report=None,
+    customer_report=None,
+):
     """Generate a consolidated business summary report."""
 
     if not orders:
@@ -112,6 +120,40 @@ def generate_business_report(orders, sales_report=None, product_report=None):
                 f"Revenue: {product['revenue']:,.2f}"
             )
 
+    if customer_report is not None:
+        print("\n--- Customer Analytics ---")
+        print(
+            f"Unique customers: "
+            f"{customer_report['total_unique_customers']:,}"
+        )
+        print(
+            f"Repeat customers: "
+            f"{customer_report['repeat_customers']:,}"
+        )
+        print(
+            f"Repeat customer percentage: "
+            f"{customer_report['repeat_customer_percentage']:.2f}%"
+        )
+
+        print("\nTop 5 customers by product spending:")
+
+        for customer_id, spending in customer_report["top_customers"][:5]:
+            print(
+                f"Customer ID: {customer_id} | "
+                f"Product spending: {spending:,.2f}"
+            )
+
+        print("\nTop 10 states by unique customer count:")
+
+        top_states = sorted(
+            customer_report["customers_by_state"].items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )[:10]
+
+        for state, count in top_states:
+            print(f"{state}: {count:,} customers")
+
     print("\n" + "=" * 55)
     print("             END OF OPSIQ REPORT")
     print("=" * 55)
@@ -128,6 +170,9 @@ if __name__ == "__main__":
     )
     products = load_csv(
         "data/raw/olist_products_dataset.csv"
+    )
+    customers = load_csv(
+        "data/raw/olist_customers_dataset.csv"
     )
     translations = load_csv(
         "data/raw/product_category_name_translation.csv"
@@ -146,8 +191,15 @@ if __name__ == "__main__":
         category_translations,
     )
 
+    customer_report = analyze_customers(
+        orders,
+        customers,
+        order_items,
+    )
+
     generate_business_report(
         orders,
         sales_report,
         product_report,
+        customer_report,
     )
