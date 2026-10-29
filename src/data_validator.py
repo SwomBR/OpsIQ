@@ -112,7 +112,7 @@ def check_invalid_order_statuses(orders):
         if is_missing(status):
             continue
 
-        if status.strip().lower() not in VALID_ORDER_STATUSES:
+        if str(status).strip().lower() not in VALID_ORDER_STATUSES:
             invalid_orders.append({
                 "order_id": order.get("order_id"),
                 "order_status": status,

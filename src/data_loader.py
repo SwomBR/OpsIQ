@@ -18,23 +18,29 @@ Why it is needed:
 """
 
 import csv
+from pathlib import Path
 
 
-def open_order():
+# Locate the data folder relative to this file, so the project
+# works on any computer without editing file paths.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
+ORDERS_FILE = RAW_DATA_DIR / "olist_orders_dataset.csv"
+
+
+def open_order(file_path=ORDERS_FILE):
     """
     Load order records from the Olist orders CSV file.
+
+    Args:
+        file_path: Path to the orders CSV file. Defaults to
+            data/raw/olist_orders_dataset.csv inside the project.
 
     Returns:
         list[dict[str, str]]:
             A list of dictionaries, where each dictionary
             represents one order record.
     """
-
-    file_path = (
-        r"C:\Users\Swom.ECPL\Desktop\Sowm\personal"
-        r"\my projects\OpsIQ\data\raw"
-        r"\olist_orders_dataset.csv"
-    )
 
     with open(
         file_path,

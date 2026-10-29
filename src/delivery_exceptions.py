@@ -100,7 +100,7 @@ def display_delivery_exceptions(exceptions, limit=10):
 
 
 if __name__ == "__main__":
-    from data_loader import open_order
+    from src.data_loader import open_order
 
     orders = open_order()
 

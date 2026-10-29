@@ -57,7 +57,7 @@ def analyze_orders(orders):
 
 
 if __name__ == "__main__":
-    from data_loader import open_order
+    from src.data_loader import open_order
 
     orders = open_order()
     analyze_orders(orders)

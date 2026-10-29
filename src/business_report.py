@@ -14,7 +14,7 @@ Purpose:
     6. Customer behavior and geographic distribution.
 """
 
-from src.data_loader import open_order
+from src.data_loader import RAW_DATA_DIR, open_order
 from src.delivery_analyzer import analyze_delivery_performance
 from src.delivery_exceptions import find_delivery_exceptions
 from src.sales_analyzer import analyze_sales, load_csv
@@ -160,23 +160,28 @@ def generate_business_report(
 
 
 if __name__ == "__main__":
-    orders = open_order()
+    try:
+        orders = open_order()
 
-    order_items = load_csv(
-        "data/raw/olist_order_items_dataset.csv"
-    )
-    payments = load_csv(
-        "data/raw/olist_order_payments_dataset.csv"
-    )
-    products = load_csv(
-        "data/raw/olist_products_dataset.csv"
-    )
-    customers = load_csv(
-        "data/raw/olist_customers_dataset.csv"
-    )
-    translations = load_csv(
-        "data/raw/product_category_name_translation.csv"
-    )
+        order_items = load_csv(
+            RAW_DATA_DIR / "olist_order_items_dataset.csv"
+        )
+        payments = load_csv(
+            RAW_DATA_DIR / "olist_order_payments_dataset.csv"
+        )
+        products = load_csv(
+            RAW_DATA_DIR / "olist_products_dataset.csv"
+        )
+        customers = load_csv(
+            RAW_DATA_DIR / "olist_customers_dataset.csv"
+        )
+        translations = load_csv(
+            RAW_DATA_DIR / "product_category_name_translation.csv"
+        )
+    except FileNotFoundError as error:
+        print(f"Dataset file not found: {error.filename}")
+        print(f"Place the Olist CSV files in: {RAW_DATA_DIR}")
+        raise SystemExit(1)
 
     sales_report = analyze_sales(order_items, payments)
 
