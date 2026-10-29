@@ -1,6 +1,11 @@
 # Raw datasets — do not upload
 data/raw/
 
+# Generated SQLite database (rebuild with: python -m src.database build)
+data/processed/*.db
+data/processed/*.db.building
+*.sqlite3
+
 # Python cache files
 __pycache__/
 *.py[cod]
@@ -15,6 +20,10 @@ env/
 .env
 .env.*
 !.env.example
+
+# Frontend dependencies and build output (also in frontend/.gitignore)
+node_modules/
+frontend/dist/
 
 # Test and coverage artifacts
 .coverage
