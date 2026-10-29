@@ -1,0 +1,43 @@
+# Render Blueprint for OpsIQ: one Python web service (the API) and one
+# static site (the dashboard). See docs/DEPLOYMENT.md for the steps.
+#
+# This file is prepared but has NOT been deployed or validated by Render.
+# Python version: .python-version in the repository root.
+
+services:
+  - type: web
+    name: opsiq-api
+    runtime: python
+    plan: free
+    # The repository root, because the API imports the analytics in src/.
+    buildCommand: >-
+      pip install -r backend/requirements.txt &&
+      python -m src.download_data
+    startCommand: >-
+      cd backend &&
+      python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: OPSIQ_ENV
+        value: production
+      - key: OPSIQ_DATA_DIR
+        value: data/raw
+      - key: OPSIQ_PRELOAD_DATA
+        value: "true"
+      # The dashboard's public address, for example
+      # https://opsiq-dashboard.onrender.com (no trailing slash).
+      # Render asks for it when the Blueprint is first created.
+      - key: OPSIQ_CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: opsiq-dashboard
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      # The API's public address, for example https://opsiq-api.onrender.com
+      # Vite copies it into the built files, so change it, then redeploy.
+      - key: VITE_API_BASE_URL
+        sync: false

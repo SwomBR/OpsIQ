@@ -1,0 +1,64 @@
+# Runs every automated check on each push and pull request.
+# The tests use small sample data written by the tests themselves, so
+# CI never needs the Olist CSV files (which are not in the repository).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python analytics, database, and API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # Version 1 analytics and the SQLite layer use only the standard library.
+      - name: Version 1 and database tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+
+      - name: Backend API tests
+        working-directory: backend
+        run: python -m unittest discover -s tests -v
+
+  frontend:
+    name: React dashboard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build

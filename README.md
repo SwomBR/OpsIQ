@@ -1,344 +1,365 @@
-# OpsIQ — AI-Powered Business Operations Intelligence Platform
+# OpsIQ — Business Operations Intelligence Platform
 
-> Transforming raw e-commerce data into actionable business insights using Python, data quality checks, delivery, sales, product, and customer analysis, and automated testing.
+> Turns ~100,000 raw e-commerce orders into tested, explainable operations metrics: a Python analytics engine, a FastAPI backend, a React dashboard, and an optional SQL database.
 
-## 1. Project Overview
+![OpsIQ dashboard](docs/screenshots/dashboard-overview.png)
 
-**OpsIQ** is a business operations analytics project designed to analyze e-commerce orders, evaluate delivery performance, identify delayed orders, check data quality, and generate business-friendly reports.
+**Status:** Working locally end to end (CLI report, API, dashboard, SQLite). Deployment files are prepared but the app is **not deployed yet**. CI is configured but has **not run on GitHub yet**.
 
-The project uses real-world e-commerce data to demonstrate how raw data can be transformed into meaningful operational insights.
+**About "AI-Powered":** this is the long-term vision for the project. The current version uses **no artificial intelligence or machine learning**. Every number comes from rule-based Python and SQL calculations. An optional AI feature is described under [Future improvements](#future-improvements).
 
-The goal is to build a practical business intelligence platform while learning Python, data analysis, software testing, and reporting through hands-on development.
+## Contents
 
-**Project status:** Working command-line analytics application (version 1). Further features are planned; see [Future Roadmap](#12-future-roadmap).
+1. [Business problem](#business-problem)
+2. [Features](#features)
+3. [Architecture](#architecture)
+4. [Technology stack](#technology-stack)
+5. [Repository structure](#repository-structure)
+6. [Dataset](#dataset)
+7. [Getting started](#getting-started)
+8. [Running the tests](#running-the-tests)
+9. [API reference](#api-reference)
+10. [Configuration](#configuration)
+11. [SQL database (optional)](#sql-database-optional)
+12. [Key results](#key-results)
+13. [Error handling, security, and performance](#error-handling-security-and-performance)
+14. [CI/CD and deployment](#cicd-and-deployment)
+15. [Limitations](#limitations)
+16. [Future improvements](#future-improvements)
 
-**About the name:** "AI-Powered" describes the long-term vision for the platform. The current version does **not** use artificial intelligence or machine learning. All results come from plain, rule-based Python calculations.
+More detail: [Architecture](docs/ARCHITECTURE.md) · [Deployment guide](docs/DEPLOYMENT.md) · [Learning guide](docs/LEARNING_GUIDE.md) · [Project handover](docs/PROJECT_HANDOVER.md)
 
-## 2. Business Problem
+## Business problem
 
-E-commerce businesses process thousands of orders and need to understand whether orders are being delivered as expected, where revenue comes from, and who their customers are.
+An online marketplace processes thousands of orders a day. Operations managers need quick, trustworthy answers to questions such as:
 
-Without structured analysis, it can be difficult to answer questions such as:
+- How many orders were delivered, and how many arrived late?
+- How late were they, and which orders need investigating first?
+- Where does product revenue come from, and how do customers pay?
+- How many customers come back to buy again?
 
-- How many orders were received and delivered?
-- How often did deliveries arrive later than estimated, and by how many days?
-- Which delayed orders should be investigated first?
-- How much product revenue and freight was recorded, and how did customers pay?
-- Which product categories and products sell the most?
-- How many customers return to buy again, and where are customers located?
-- Is the data itself reliable enough to trust these numbers?
+OpsIQ answers these from the raw order data, using one set of tested business rules shared by every interface.
 
-OpsIQ addresses these questions by analyzing the dataset and presenting the results in structured terminal reports.
+**Target users:** operations and logistics managers (the dashboard), analysts (the SQL database and CLI report), and developers who integrate the metrics into other tools (the API).
 
-## 3. Main Features
+## Features
 
-| Feature | Module | What it does |
+| Area | What it does |
+|---|---|
+| Analytics engine (`src/`) | Order, delivery, sales, product, and customer metrics in plain Python. Data-quality checks for missing, duplicate, invalid, and out-of-order values. |
+| CLI report | `python -m src.business_report` prints the full business report. |
+| REST API (`backend/`) | 9 read-only JSON endpoints built with FastAPI, with response schemas, input validation, safe error messages, CORS, and caching. |
+| Dashboard (`frontend/`) | React dashboard: summary cards, delivery performance, order status chart, a delivery-exceptions table with severity labels, sales, products, and customers. Responsive, keyboard accessible, light and dark themes. |
+| SQL database (`sql/`, `src/database.py`) | Optional SQLite copy of the data with keys, foreign keys, and indexes, plus 7 documented example queries that are checked against the Python results. |
+| Quality | 191 automated tests across Python, the API, and the frontend. GitHub Actions workflow for CI. |
+
+| Desktop (dark theme) | Mobile |
+|---|---|
+| ![Dark theme](docs/screenshots/dashboard-dark.png) | <img src="docs/screenshots/dashboard-mobile.png" alt="Mobile layout" width="240"> |
+
+The full-page desktop screenshot is in [docs/screenshots/dashboard-desktop.png](docs/screenshots/dashboard-desktop.png).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    CSV[("Olist CSV files<br/>data/raw/")]
+    SRC["Analytics engine<br/>src/ (Python)"]
+    CLI["CLI report<br/>python -m src.business_report"]
+    API["FastAPI backend<br/>backend/ + in-memory cache"]
+    WEB["React dashboard<br/>frontend/"]
+    DB[("SQLite database<br/>optional")]
+
+    CSV --> SRC
+    SRC --> CLI
+    SRC --> API
+    API -- "JSON over HTTP" --> WEB
+    CSV -- "python -m src.database build" --> DB
+```
+
+- The **CSV files are the source of truth**. The database is an optional copy for SQL analysis.
+- The **business rules live in one place** (`src/`). The CLI report and the API call the same functions, so they always agree.
+- The API calculates each result **once**, caches it in memory, and returns it in milliseconds afterwards.
+- The dashboard only **displays** numbers from the API; it never calculates business metrics itself.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for data flow, caching, error handling, the database schema, and the testing strategy.
+
+## Technology stack
+
+| Layer | Technology | Why |
 |---|---|---|
-| Data loading | `src/data_loader.py` | Loads the orders CSV file into a list of dictionaries. |
-| Data quality validation | `src/data_validator.py` | Checks for missing, duplicate, invalid, and inconsistent order data. |
-| Order analysis | `src/data_analyzer.py` | Counts orders by status and calculates the delivered percentage. |
-| Delivery performance | `src/delivery_analyzer.py` | Measures on-time and late deliveries and delay durations. |
-| Delivery exceptions | `src/delivery_exceptions.py` | Lists late orders, ranked from the longest delay. |
-| Sales and payments | `src/sales_analyzer.py` | Calculates product revenue, freight, average order value, and payment totals by method. |
-| Product performance | `src/product_analyzer.py` | Ranks categories by revenue and products by quantity sold. |
-| Customer analytics | `src/customer_analyzer.py` | Counts unique and repeat customers, top spenders, and customers by state. |
-| Business report | `src/business_report.py` | Combines all of the above into one report. |
+| Analytics | Python 3.14, standard library only (`csv`, `datetime`, `collections`) | No dependencies; easy to read and test. |
+| API | FastAPI, Pydantic, Uvicorn | Validation, response schemas, and interactive docs at `/docs`. |
+| Frontend | React 19, Vite 8, plain CSS | Small dependency set. Charts are accessible HTML bars, so no charting library is needed. |
+| Database | SQLite (`sqlite3` from the standard library) | Free, file-based, no server to run. |
+| Tests | `unittest`, FastAPI `TestClient`, Vitest, Testing Library | One standard tool per language. |
+| CI/CD | GitHub Actions; Render Blueprint (prepared) | Free for public repositories / free tiers available. |
 
-## 4. Dataset
-
-This project uses the public **Olist Brazilian E-Commerce** dataset, available on Kaggle:
-<https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce>
-
-The CSV files are **not included in this repository** (they are listed in `.gitignore`). Download them and place them in `data/raw/`.
-
-The application uses these files:
-
-| File | Used for |
-|---|---|
-| `olist_orders_dataset.csv` | Orders, statuses, and delivery dates (99,441 records) |
-| `olist_order_items_dataset.csv` | Product prices and freight charges |
-| `olist_order_payments_dataset.csv` | Payment methods and values |
-| `olist_products_dataset.csv` | Product categories |
-| `olist_customers_dataset.csv` | Customer identities and states |
-| `product_category_name_translation.csv` | English category names |
-
-Important order fields include:
-
-| Column | Description |
-|---|---|
-| `order_id` | Unique identifier for an order |
-| `customer_id` | Identifier for the customer associated with an order |
-| `order_status` | Current or recorded order status |
-| `order_purchase_timestamp` | Timestamp when the order was placed |
-| `order_approved_at` | Timestamp when the order was approved |
-| `order_delivered_carrier_date` | Timestamp when the order was handed to the carrier |
-| `order_delivered_customer_date` | Timestamp when the order reached the customer |
-| `order_estimated_delivery_date` | Estimated delivery date |
-
-**Data handling note:** Missing delivery dates do not automatically indicate bad data. Some orders may not have completed delivery, while other records may require further investigation.
-
-## 5. Technology Stack
-
-| Technology | Purpose |
-|---|---|
-| Python 3.10+ | Data processing and analysis |
-| `csv` module | Reading CSV files |
-| `datetime` module | Comparing dates and calculating delays |
-| `pathlib` module | Locating the data folder on any computer |
-| `collections` module | Grouping and totalling values |
-| `unittest` module | Automated testing |
-| Visual Studio Code | Development environment |
-| Git and GitHub | Version control and project sharing |
-
-OpsIQ uses **only the Python standard library**. There are no external packages to install, so no `requirements.txt` file is needed.
-
-## 6. Project Structure
+## Repository structure
 
 ```text
 OpsIQ/
-│
+├── src/                     Version 1 analytics engine (Python standard library)
+│   ├── business_report.py   Full CLI report (main entry point)
+│   ├── data_loader.py       Loads the orders CSV
+│   ├── data_validator.py    Data-quality checks
+│   ├── data_analyzer.py     Orders by status
+│   ├── delivery_analyzer.py On-time vs late, delays
+│   ├── delivery_exceptions.py  Late orders, longest delay first
+│   ├── sales_analyzer.py    Revenue, freight, payments
+│   ├── product_analyzer.py  Categories and products
+│   ├── customer_analyzer.py Unique and repeat customers
+│   ├── database.py          Optional SQLite build, queries, verification
+│   └── download_data.py     Downloads the dataset from Kaggle
+├── tests/                   Tests for src/ (unittest)
+├── backend/                 FastAPI application (own virtual environment)
+│   ├── app/
+│   │   ├── main.py          App, CORS, error handler, startup warm-up
+│   │   ├── config.py        Settings from environment variables
+│   │   ├── schemas.py       Response shapes
+│   │   ├── api/             Routes: health and analytics
+│   │   └── services/        Loads data, calls src/, caches results
+│   ├── tests/
+│   └── requirements.txt
+├── frontend/                React dashboard (Vite)
+│   ├── src/
+│   │   ├── api/client.js    All HTTP requests
+│   │   ├── hooks/useApi.js  Loading / error / data state
+│   │   ├── components/      Layout, cards, charts, table, sections
+│   │   └── utils/           Formatting and chart data helpers
+│   ├── .env.example
+│   └── package.json
+├── sql/
+│   ├── schema.sql           Tables, keys, indexes
+│   └── queries/             Example analysis queries
 ├── data/
-│   ├── raw/                  # Olist CSV files go here (not committed)
-│   └── processed/            # Reserved for future processed data
-│
-├── docs/
-│   └── AI_Powered_Business_Operations_Intelligence_Platform_Master_Plan_v1.docx
-│
-├── src/
-│   ├── data_loader.py
-│   ├── data_validator.py
-│   ├── data_analyzer.py
-│   ├── delivery_analyzer.py
-│   ├── delivery_exceptions.py
-│   ├── sales_analyzer.py
-│   ├── product_analyzer.py
-│   ├── customer_analyzer.py
-│   └── business_report.py
-│
-├── tests/
-│   ├── test_business_report.py
-│   ├── test_customer_analyzer.py
-│   ├── test_data_analyzer.py
-│   ├── test_data_loader.py
-│   ├── test_data_validator.py
-│   ├── test_delivery_analyzer.py
-│   ├── test_delivery_exceptions.py
-│   ├── test_product_analyzer.py
-│   └── test_sales_analyzer.py
-│
-├── .gitignore
-└── README.md
+│   ├── raw/                 Olist CSV files (not committed)
+│   └── processed/           Generated SQLite database (not committed)
+├── docs/                    Architecture, deployment, learning guide, screenshots
+├── .github/workflows/ci.yml Continuous integration
+├── render.yaml              Deployment blueprint (prepared, not yet used)
+└── .python-version
 ```
 
-## 7. Setup on a New Machine
+## Dataset
 
-### Prerequisites
+[Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (Kaggle, licence **CC BY-NC-SA 4.0**): about 100,000 anonymised orders placed between September 2016 and October 2018.
 
-- Python 3.10 or later. The project has been developed and tested with Python 3.14.6.
-- Git (optional, for cloning the repository).
-
-Check your Python version:
+The CSV files are **not committed** to this repository. Download them with:
 
 ```powershell
-python --version
+python -m src.download_data
 ```
 
-### Step 1: Get the project
+or manually from Kaggle into `data/raw/`.
+
+| File | Used for |
+|---|---|
+| `olist_orders_dataset.csv` | Orders, statuses, and delivery dates (99,441 rows) |
+| `olist_order_items_dataset.csv` | Item prices and freight (112,650 rows) |
+| `olist_order_payments_dataset.csv` | Payment methods and values (103,886 rows) |
+| `olist_products_dataset.csv` | Product categories (32,951 rows) |
+| `olist_customers_dataset.csv` | Customer identities and states (99,441 rows) |
+| `product_category_name_translation.csv` | English category names (71 rows) |
+| `olist_sellers_dataset.csv` | Sellers (SQL database only) |
+
+**Relationships:** each order belongs to one `customer_id`; one person (`customer_unique_id`) can have several `customer_id`s, one per order. Each order has zero or more items and payments; each item refers to one product and one seller. These relationships were checked: the data has no orphan rows and no duplicate keys.
+
+## Getting started
+
+All commands are for **Windows PowerShell**. You need Python 3.10+ (developed with 3.14), Node.js 22.12+ (developed with Node 24; the test runner needs 22.12 or later), and Git.
+
+### 1. Get the code and data (project root)
 
 ```powershell
-git clone <repository-url>
+git clone https://github.com/SwomBR/OpsIQ.git
 cd OpsIQ
+python -m src.download_data
 ```
 
-### Step 2: Add the dataset
-
-1. Download the Olist dataset from Kaggle (link in [Section 4](#4-dataset)).
-2. Extract the ZIP file.
-3. Copy the CSV files into the `data/raw/` folder inside the project.
-
-If a file is missing, the business report prints which file it could not find and where it expected it.
-
-No other installation is needed.
-
-## 8. How to Run the Project
-
-**Run every command from the project root folder** (the `OpsIQ` folder that contains `src/` and `tests/`).
-
-Modules are run with `python -m src.<module_name>`. This lets Python find the `src` package, which all modules import from.
-
-### Full business report (main entry point)
+### 2. Run the CLI report (project root)
 
 ```powershell
 python -m src.business_report
 ```
 
-### Data quality report
+The report needs no packages. It ends with `END OF OPSIQ REPORT`. Other reports: `python -m src.data_validator`, `python -m src.delivery_exceptions`, and the other modules in `src/`. Always use `python -m`; `python src/business_report.py` cannot find the `src` package.
+
+### 3. Start the API (terminal 1, `backend` folder)
 
 ```powershell
-python -m src.data_validator
+cd backend
+python -m venv .venv                         # first time only
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt    # first time only
+uvicorn app.main:app --reload
 ```
 
-### Individual reports
+If PowerShell blocks `Activate.ps1`, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
+
+The API runs at http://127.0.0.1:8000. Interactive documentation: http://127.0.0.1:8000/docs. The server calculates all metrics in the background when it starts (about 10 seconds); requests that arrive earlier wait for that calculation.
+
+### 4. Start the dashboard (terminal 2, `frontend` folder)
 
 ```powershell
-python -m src.delivery_exceptions
-python -m src.delivery_analyzer
-python -m src.data_analyzer
-python -m src.sales_analyzer
-python -m src.product_analyzer
-python -m src.customer_analyzer
+cd frontend
+npm install        # first time only
+npm run dev
 ```
 
-**Note:** Running a file directly, for example `python src/business_report.py`, does **not** work. Python then cannot find the `src` package and reports `ModuleNotFoundError: No module named 'src'`. Use the `python -m` commands above instead.
+Open http://localhost:5173. The dashboard expects the API at `http://127.0.0.1:8000`; to change it, see [Configuration](#configuration).
 
-## 9. How to Run the Tests
+## Running the tests
+
+| Suite | Folder | Command |
+|---|---|---|
+| Analytics, database, download helper | project root | `python -m unittest discover -s tests -v` |
+| API | `backend` (venv active) | `python -m unittest discover -s tests -v` |
+| Dashboard | `frontend` | `npm test` |
+| Dashboard lint and production build | `frontend` | `npm run lint` and `npm run build` |
+
+None of the tests need the Olist dataset; they create small sample files. Latest local results (29 Oct 2026, Windows): **89** Python tests, **61** API tests, **41** frontend tests — all passing.
+
+## API reference
+
+All endpoints use `GET`, return JSON, and live under `/api/v1`. Full schemas: http://127.0.0.1:8000/docs.
+
+| Endpoint | Returns |
+|---|---|
+| `/health` | `{"app": "OpsIQ", "status": "healthy"}`. Never reads the data. |
+| `/` | Welcome message and a link to `/docs`. |
+| `/analytics/summary` | Total orders, delivered orders, delivered percentage, late-delivered orders. |
+| `/analytics/orders-by-status` | Total orders and the count in each status. |
+| `/analytics/delivery-performance` | Orders analysed, on-time / late counts and percentages, skipped orders, average and maximum delay, orders over 3 and 7 days late. |
+| `/analytics/delivery-exceptions?limit=10` | Total late orders plus the `limit` most delayed (1–100, default 10): order ID, estimated and actual delivery, days late. No customer data. |
+| `/analytics/dataset-info` | First and last order purchase dates, and when the server calculated the metrics. |
+| `/analytics/sales` | Product revenue, freight value, orders with items, average product value per order, payment totals by method. |
+| `/analytics/products` | Catalog size, products missing a category, top 10 categories by revenue, top 10 products by items sold. |
+| `/analytics/customers` | Unique customers, repeat customers and percentage, unique customers per state. Individual customers are never returned. |
+
+Example: `GET /api/v1/analytics/summary`
+
+```json
+{"total_orders": 99441, "delivered_orders": 96478, "delivered_percentage": 97.02, "late_delivered_orders": 7826}
+```
+
+Percentages and days are rounded to 2 decimals. When there is nothing to divide by (for example, no orders), percentages and averages are `null`.
+
+| Situation | Status | Response |
+|---|---|---|
+| A CSV file is missing | 503 | Names the missing file (never the folder path). |
+| A file cannot be read or contains bad values | 500 | Short message; details go to the server log. |
+| Invalid `limit` (`0`, `500`, `abc`) | 422 | Which value was wrong and why. |
+| Unknown address | 404 | `{"detail": "Not Found"}` |
+| Any other unexpected error | 500 | `{"detail": "An unexpected server error occurred."}` |
+
+## Configuration
+
+Settings come from environment variables. None of them are secrets, and the defaults work for local development.
+
+**Backend** (`backend/app/config.py`):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `OPSIQ_ENV` | `development` | Environment name, shown in the startup log. |
+| `OPSIQ_DATA_DIR` | `data/raw` | Folder with the CSV files. Relative paths start at the project root. |
+| `OPSIQ_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated web addresses allowed to call the API from a browser. |
+| `OPSIQ_LOG_LEVEL` | `INFO` | Log detail for OpsIQ's own messages. |
+| `OPSIQ_PRELOAD_DATA` | `true` | Calculate all metrics in the background at startup. |
 
 ```powershell
-python -m unittest discover -s tests -v
+$env:OPSIQ_CORS_ORIGINS = "http://localhost:5173,https://my-dashboard.example.com"
+uvicorn app.main:app
 ```
 
-The tests use small, hand-written sample records, so they **do not need the Olist dataset**.
+**Frontend** (`frontend/.env.local`, copied from `frontend/.env.example`):
 
-**Latest confirmed result:** 54 tests ran, 54 passed, 0 failed.
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://127.0.0.1:8000` | Address of the API. |
 
-Test coverage includes:
+Vite only exposes variables that start with `VITE_`, and it copies them into the built JavaScript, so anyone can read them. **Never put secrets in frontend variables.** After changing the value, restart `npm run dev` or rebuild.
 
-- Order counts, delivered counts, and empty datasets.
-- Correct dataset location and CSV loading.
-- On-time and late delivery classification, delay durations, and missing or invalid dates.
-- Delivery exception detection and sorting.
-- Sales revenue, freight, average order value, and payment totals.
-- Product category revenue, quantities, translations, and missing categories.
-- Unique and repeat customers, combined spending, and customers by state.
-- Every data quality check, including whitespace-only values, status capitalisation and spacing, missing middle dates, unreadable dates, and records with missing fields.
-- The combined business report output.
+## SQL database (optional)
 
-## 10. What the Business Report Contains
+The CSV workflow does not need the database. It is a separate tool for SQL analysis.
 
-`python -m src.business_report` prints these sections, in order:
+```powershell
+# project root
+python -m src.download_data --with-database-files   # adds the sellers file
+python -m src.database build      # creates data/processed/opsiq.db (about 20 s)
+python -m src.database list       # lists the example queries
+python -m src.database query delivery_performance
+python -m src.database late --min-days 30 --limit 5
+python -m src.database verify     # compares SQL results with the Python analytics
+```
 
-1. **Order summary:** total orders, delivered orders, delivered percentage, late-delivered orders.
-2. **Delivery performance details:** on-time and late counts and percentages, average and maximum delay, orders delayed by more than 3 and 7 days.
-3. **Highest-priority delivery exceptions:** the five most delayed orders.
-4. **Sales and payment analytics:** product revenue, freight charges, orders with item records, average product value per order, payment totals by method.
-5. **Product performance:** catalog size, products missing a category, top 5 categories by revenue, top 5 products by quantity sold.
-6. **Customer analytics:** unique customers, repeat customers and percentage, top 5 customers by product spending, top 10 states by customer count.
+- 7 tables: `customers`, `orders`, `order_items`, `order_payments`, `products`, `sellers`, `category_translations`, with primary keys, foreign keys, and indexes ([sql/schema.sql](sql/schema.sql)).
+- Example queries in [sql/queries/](sql/queries/): orders by status, delivery performance, the 10 latest deliveries, late deliveries by month, revenue by category, repeat customers, and orders per customer.
+- Rebuilding is always safe: the database is built in a temporary file and only replaces the old one if every table imported. Duplicate rows are skipped and counted; empty values become `NULL`; bad values and broken relationships stop the build with the file and line number.
+- User input is always passed as SQL parameters (`?`), never pasted into SQL text.
+- `verify` on the full dataset: **33 of 33 metrics match** the Python analytics.
 
-The report ends with the line `END OF OPSIQ REPORT`.
+## Key results
 
-### Key results from the current dataset
+From the full dataset. The CLI report, API, dashboard, and SQL database all give these values.
 
-| Metric | Result |
+| Metric | Value |
 |---|---:|
 | Total orders | 99,441 |
-| Orders marked as delivered | 96,478 (97.02%) |
-| Delivered orders analyzed for timeliness | 96,470 |
-| On-time delivery percentage | 91.89% |
-| Late-delivered orders | 7,826 (8.11%) |
-| Average delay among late orders | 9.55 days |
-| Maximum recorded delivery delay | 188.98 days |
-| Orders delayed more than 3 days | 5,164 |
-| Orders delayed more than 7 days | 3,345 |
-| Total product revenue | 13,591,643.70 |
-| Total freight charges | 2,251,909.54 |
-| Average product value per order | 137.75 |
-| Top category by revenue | health_beauty (1,258,681.34) |
-| Unique customers | 96,096 |
-| Repeat customers | 2,997 (3.12%) |
+| Delivered orders | 96,478 (97.02%) |
+| Delivered orders with valid dates (analysed) | 96,470 |
+| On time | 88,644 (91.89%) |
+| Late | 7,826 (8.11%) |
+| Average delay of late orders | 9.55 days |
+| Longest delay | 188.98 days |
+| More than 3 / 7 days late | 5,164 / 3,345 |
+| Product revenue (sum of item prices) | R$ 13,591,643.70 |
+| Freight value | R$ 2,251,909.54 |
+| Average product value per order | R$ 137.75 |
+| Unique / repeat customers | 96,096 / 2,997 (3.12%) |
 
-Monetary values are in Brazilian reais (BRL), as recorded in the dataset.
+**Metric definitions**
 
-### Metric definitions
+- **Delivered percentage** = orders with status `delivered` ÷ all orders.
+- **On time** = delivered on or before the estimated date and time. **Late** = after it. Delivered orders missing a date are skipped (8 orders).
+- **Product revenue** = sum of item prices. It is not total company revenue and excludes freight.
+- **Average product value per order** = product revenue ÷ orders that have items.
+- **Repeat customer** = a person (`customer_unique_id`) with more than one order.
 
-- **Delivered order percentage** = orders marked as delivered ÷ all order records.
-- **On-time delivery percentage** = delivered orders that arrived on or before the estimated date and time ÷ delivered orders with valid dates.
-- **Late delivery percentage** = delivered orders that arrived after the estimated date and time ÷ delivered orders with valid dates.
-- **Average product value per order** = total product revenue ÷ orders that have item records. Freight is not included.
-- **Repeat customer** = a unique customer (`customer_unique_id`) with more than one order.
+## Error handling, security, and performance
 
-### Business interpretation
+- **Safe errors:** error responses never include file paths or stack traces; details go to the server log only.
+- **Privacy:** the API and dashboard show only order IDs and aggregate counts. Customer IDs, cities, and spending per customer are never returned.
+- **Read-only API:** only `GET` is allowed, and CORS allows only the configured dashboard addresses.
+- **No secrets:** there are no credentials in the project. `.env` files are ignored by Git.
+- **SQL injection:** user values are always sent as query parameters.
+- **Performance:** delivery metrics take a few seconds to calculate for ~100k orders. The API calculates each result once and caches it (only the results, not the raw rows), so later requests take about 5 ms and the server uses about 165 MB of memory. A lock makes simultaneous first requests share one calculation. **Restart the server to load new CSV files.**
 
-Most orders were delivered, but the analysis still identified thousands of late deliveries, some of them months late. The most delayed orders are listed individually to support investigation.
+## CI/CD and deployment
 
-These findings describe the supplied dataset. They do not, by themselves, establish the causes of delivery delays or prove that the recorded dates are correct.
+- **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs the Python, API, and frontend tests, the frontend lint, and the production build on every push and pull request. It uses only test data. The same steps were reproduced locally; the workflow has **not yet run on GitHub**.
+- **Deployment:** [render.yaml](render.yaml) describes the API (Python web service) and dashboard (static site) on Render. During the build, the API downloads the public dataset from Kaggle; no credentials are needed. A production rehearsal (production settings, downloaded data, production build, strict CORS) passed locally. Step-by-step instructions, costs, and limits: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## 11. Data Quality Checks
+## Limitations
 
-`python -m src.data_validator` checks the orders dataset for:
+- **Not deployed yet;** CI has not run on GitHub yet.
+- **Static data:** metrics describe the 2016–2018 dataset. New data requires restarting the API.
+- **No filters:** the dashboard shows whole-dataset totals; there is no date or region filter.
+- **Startup time:** the API takes about 10 seconds to calculate everything. On a free hosting plan, add about 1 minute when the service wakes up after 15 minutes without traffic.
+- **"Late" compares timestamps:** every estimated date is at midnight, so an order delivered later on the estimated day counts as late (1,292 of the 7,826 late orders).
+- **Causes are not analysed:** OpsIQ shows which orders were late, not why.
+- **No authentication:** acceptable for public, anonymised, aggregate data; required before adding private data.
+- **Data quality:** the validator found 1,382 orders with out-of-order timestamps; they are reported, not corrected.
 
-| Check | What it looks for |
-|---|---|
-| Missing values | Empty or whitespace-only values in each column |
-| Missing order IDs | Records without an `order_id` |
-| Duplicate order IDs | The same `order_id` appearing more than once |
-| Invalid order statuses | Statuses outside the 8 known Olist statuses (case and extra spaces are ignored) |
-| Invalid date formats | Non-empty dates that are not in `YYYY-MM-DD HH:MM:SS` format |
-| Inconsistent processing timestamps | Steps recorded out of order, for example handed to the carrier before approval (missing steps are skipped) |
-| Delivered orders missing delivery dates | Orders marked delivered with no customer delivery date |
+## Future improvements
 
-On the current dataset, the validator found **1,382 orders with out-of-order processing timestamps** and **8 delivered orders without a delivery date**. It found no missing or duplicate order IDs, invalid statuses, or invalid date formats.
-
-## 12. Known Limitations and Assumptions
-
-- **Command-line only.** Results are printed to the terminal. There is no dashboard, web interface, API, database, or cloud deployment.
-- **Run from the project root** with `python -m src.<module>`. Running files directly does not work (see [Section 8](#8-how-to-run-the-project)).
-- **Late means after the estimated timestamp.** Every estimated delivery date in the dataset is at midnight (`00:00:00`). An order delivered later on the estimated day therefore counts as late. 1,292 of the 7,826 late orders fall into this group.
-- **Missing or unreadable delivery dates are skipped** in delivery calculations (8 delivered orders), and may need separate investigation.
-- **Delivery analysis identifies delays but not their causes.**
-- **Categories:** products without a category are reported as `unknown`, and two categories have no English translation in the dataset, so they appear in Portuguese.
-- **Customers by state:** 39 customers appear in more than one state, so the state counts add up to slightly more than the number of unique customers.
-- **Payment totals** include all payment records (including vouchers and instalment amounts), so they do not exactly equal product revenue plus freight.
-- **Data is loaded fully into memory**, which works well for this dataset size but would need a different approach for much larger data.
-- **Automated tests use small sample records.** They cover the core rules but not every possible input.
-- **No continuous integration** is set up yet.
-
-## 13. Future Roadmap
-
-Planned development follows the learning cycle:
-
-**Learn → Build → Test → Explain → Document → Move on**
-
-Potential next stages include:
-
-1. Investigate extreme delivery delays and the data-quality exceptions found by the validator.
-2. Decide whether "late" should compare calendar dates instead of timestamps.
-3. Separate business calculations from report presentation.
-4. Save report results to files (for example CSV) in `data/processed/`.
-5. Add SQL-based data storage and querying.
-6. Develop interactive business dashboards (for example Power BI).
-7. Explore API integration and automation.
-8. Introduce continuous integration.
-9. Evaluate cloud deployment options.
-10. Explore AI-assisted insights, in line with the long-term vision.
-
-These are planned enhancements and should not be interpreted as already completed.
-
-## 14. Learning Outcomes
-
-Through this project, the developer is practising:
-
-- Python fundamentals and modular programming.
-- Reading and processing CSV data.
-- Working with dictionaries, lists, sets, loops, and functions.
-- Date parsing and duration calculations.
-- Data quality checks.
-- Business metric calculations.
-- Exception identification and prioritization.
-- Automated testing and debugging.
-- Version control with Git.
-- Writing technical documentation.
-- Translating business questions into analytical requirements.
-
-## 15. Project Purpose
-
-OpsIQ is being developed as a hands-on learning and portfolio project to demonstrate the process of transforming raw operational data into tested, interpretable business insights.
-
-The long-term objective is to extend the initial analytics pipeline into a more complete business operations intelligence platform.
+1. Date-range and state filters (API query parameters and dashboard controls).
+2. Delivery delay analysis by seller, state, and product category to find causes.
+3. Serve the API from the SQLite database instead of CSV files, for faster startup.
+4. **Optional AI briefing:** a backend endpoint that sends only the calculated aggregate metrics (never customer data) to a language model and returns a short management summary, clearly labelled as generated text, with the facts shown beside it. It would need an API key stored on the backend and has a per-request cost, so it is not built yet.
+5. Browser end-to-end tests in CI.
 
 ---
 
-**Project:** OpsIQ — AI-Powered Business Operations Intelligence Platform
-
-**Status:** Version 1 — working command-line analytics application
-
-**Primary language:** Python
+Built as a hands-on learning and portfolio project. Data © Olist, CC BY-NC-SA 4.0.
