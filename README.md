@@ -27,7 +27,20 @@
 15. [Limitations](#limitations)
 16. [Future improvements](#future-improvements)
 
-More detail: [Architecture](docs/ARCHITECTURE.md) · [Deployment guide](docs/DEPLOYMENT.md) · [Learning guide](docs/LEARNING_GUIDE.md) · [Project handover](docs/PROJECT_HANDOVER.md)
+### Documentation
+
+| Document | What it covers |
+|---|---|
+| [Project handover](docs/PROJECT_HANDOVER.md) | Current status, verified evidence, risks, and next steps (start here after a break) |
+| [Setup and migration](docs/SETUP_AND_MIGRATION.md) | Restoring and running OpsIQ on another Windows PC, step by step |
+| [Pause and resume](docs/PAUSE_AND_RESUME.md) | Checklist for stopping and restarting work safely |
+| [Master reference](docs/PROJECT_MASTER_REFERENCE.md) | Every module, dataset, metric, SQL table, and known issue |
+| [Architecture](docs/ARCHITECTURE.md) | Diagrams: components, data flow, API, frontend, database, CI |
+| [API reference](docs/API_REFERENCE.md) | Every endpoint, field, error, and its verification status |
+| [Testing guide](docs/TESTING_GUIDE.md) | Test suites, commands, latest results, and known gaps |
+| [Roadmap](docs/PROJECT_ROADMAP.md) | Status of every area and prioritised remaining work |
+| [Deployment](docs/DEPLOYMENT.md) | Hosting on Render (prepared, not deployed) |
+| [Learning guide](docs/LEARNING_GUIDE.md) | Concepts explained with this project's code, plus interview preparation |
 
 ## Business problem
 
@@ -135,7 +148,7 @@ OpsIQ/
 ├── data/
 │   ├── raw/                 Olist CSV files (not committed)
 │   └── processed/           Generated SQLite database (not committed)
-├── docs/                    Architecture, deployment, learning guide, screenshots
+├── docs/                    Handover, setup, reference, architecture, API, testing, roadmap, learning guide, screenshots
 ├── .github/workflows/ci.yml Continuous integration
 ├── render.yaml              Deployment blueprint (prepared, not yet used)
 └── .python-version

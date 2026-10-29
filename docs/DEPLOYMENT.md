@@ -1,6 +1,6 @@
 # Deploying OpsIQ
 
-**Current status: prepared, not deployed.** Everything below has been rehearsed locally (see [§5](#5-what-has-been-verified)), but no hosting account has been used, so no public URL exists yet.
+**Current status (checked 29 Oct 2026): prepared, not deployed.** Everything below has been rehearsed locally (see [§5](#5-what-has-been-verified)), but no hosting account has been used, so no public URL exists yet. The default Render addresses (`opsiq-api.onrender.com`, `opsiq-dashboard.onrender.com`) did not respond on 29 Oct 2026.
 
 ## 1. What gets deployed
 
@@ -34,7 +34,9 @@ Nothing in this guide requires a paid plan. Do not add a payment method unless y
 
 ### Step 1 — Push the code to GitHub (you)
 
-Commit and push the changes (see the suggested commands in the project report). Render deploys from GitHub.
+Done: the code is on GitHub (`main`), and CI passes there. Before deploying, make sure your latest changes are pushed (`git status` is clean and up to date), because Render deploys from GitHub.
+
+**Check first:** Render reads the Python version from `.python-version` (3.14). Confirm in Render's documentation that 3.14 is supported. If it is not, switch to the newest supported version (for example 3.13), run all tests locally, and update `.python-version` and `ci.yml`.
 
 ### Step 2 — Create the services from the Blueprint (you; needs your Render account)
 
@@ -92,9 +94,12 @@ On 29 Oct 2026, on Windows, without any hosting account:
 | CORS | Allowed origin received `Access-Control-Allow-Origin`; the development origin did not |
 | Dashboard production build with `VITE_API_BASE_URL=http://127.0.0.1:8001`, served by `vite preview` | Every key figure displayed; no console errors; one request per endpoint; no horizontal scrolling at 390 px |
 | API stopped while the dashboard is open | Every section shows "Could not reach the OpsIQ API…" with a retry button; no crash |
-| `render.yaml` and `.github/workflows/ci.yml` | Parse as valid YAML. **Not validated by Render or GitHub.** |
+| `.github/workflows/ci.yml` | **Validated by GitHub:** runs #1 and #2 passed (29 Oct 2026) |
+| `render.yaml` | Parses as valid YAML. **Not validated by Render.** |
 
-Not verified: a real Render build, Render's Python and Node environments, the public URLs, and the GitHub Actions run.
+Not verified: a real Render build, Render's Python and Node environments (including Python 3.14 support), and the public URLs.
+
+Except for the CI row, these checks come from earlier work on the same day, before the project audit (historical). The audit re-checked the dataset download (7 files, all byte-identical), CORS, and the local API and dashboard on desktop. It did **not** repeat the production-settings rehearsal or the 390 px check.
 
 ## 6. Troubleshooting
 
