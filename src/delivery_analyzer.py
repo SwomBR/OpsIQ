@@ -20,12 +20,14 @@ Analysis performed:
 from datetime import datetime
 
 
-def analyze_delivery_performance(orders):
-    """Analyze delivery timeliness and delay duration."""
+def calculate_delivery_performance(orders):
+    """Calculate delivery timeliness and delay metrics.
 
-    if not orders:
-        print("No order data available to analyze.")
-        return
+    Returns:
+        dict: The delivery metrics. Percentages, the average delay,
+        and the maximum delay are None when no delivered orders
+        with valid dates are available.
+    """
 
     delivered_orders = 0
     on_time_orders = 0
@@ -96,42 +98,76 @@ def analyze_delivery_performance(orders):
         if delay_days > 7:
             delayed_more_than_7_days += 1
 
+    on_time_percentage = None
+    late_percentage = None
+    average_delay_days = None
+    maximum_delay_days = None
+
+    if delivered_orders > 0:
+        on_time_percentage = (on_time_orders / delivered_orders) * 100
+        late_percentage = (late_orders / delivered_orders) * 100
+
+        if late_orders > 0:
+            average_delay_days = (
+                total_delay_seconds / late_orders / 86400
+            )
+            maximum_delay_days = maximum_delay_seconds / 86400
+        else:
+            average_delay_days = 0.0
+            maximum_delay_days = 0.0
+
+    return {
+        "delivered_orders_analyzed": delivered_orders,
+        "on_time_orders": on_time_orders,
+        "late_orders": late_orders,
+        "skipped_orders": skipped_orders,
+        "on_time_percentage": on_time_percentage,
+        "late_percentage": late_percentage,
+        "average_delay_days": average_delay_days,
+        "maximum_delay_days": maximum_delay_days,
+        "delayed_more_than_3_days": delayed_more_than_3_days,
+        "delayed_more_than_7_days": delayed_more_than_7_days,
+    }
+
+
+def analyze_delivery_performance(orders):
+    """Analyze delivery timeliness and delay duration."""
+
+    if not orders:
+        print("No order data available to analyze.")
+        return
+
+    metrics = calculate_delivery_performance(orders)
+
     print("\n--- OpsIQ Delivery Performance Report ---")
 
-    print("Delivered orders analyzed:", delivered_orders)
-    print("On-time orders:", on_time_orders)
-    print("Late orders:", late_orders)
-    print("Orders skipped due to missing or invalid dates:", skipped_orders)
+    print("Delivered orders analyzed:", metrics["delivered_orders_analyzed"])
+    print("On-time orders:", metrics["on_time_orders"])
+    print("Late orders:", metrics["late_orders"])
+    print(
+        "Orders skipped due to missing or invalid dates:",
+        metrics["skipped_orders"]
+    )
 
-    if delivered_orders == 0:
+    if metrics["delivered_orders_analyzed"] == 0:
         print("No delivered orders with valid dates were available.")
         return
 
-    on_time_percentage = (on_time_orders / delivered_orders) * 100
-    late_percentage = (late_orders / delivered_orders) * 100
-
-    print(f"On-time delivery percentage: {on_time_percentage:.2f}%")
-    print(f"Late delivery percentage: {late_percentage:.2f}%")
-
-    if late_orders > 0:
-        average_delay_days = (
-            total_delay_seconds / late_orders / 86400
-        )
-        maximum_delay_days = maximum_delay_seconds / 86400
-
-        print(f"Average delay among late orders: {average_delay_days:.2f} days")
-        print(f"Maximum delivery delay: {maximum_delay_days:.2f} days")
-    else:
-        print("Average delay among late orders: 0.00 days")
-        print("Maximum delivery delay: 0.00 days")
+    print(f"On-time delivery percentage: {metrics['on_time_percentage']:.2f}%")
+    print(f"Late delivery percentage: {metrics['late_percentage']:.2f}%")
+    print(
+        "Average delay among late orders: "
+        f"{metrics['average_delay_days']:.2f} days"
+    )
+    print(f"Maximum delivery delay: {metrics['maximum_delay_days']:.2f} days")
 
     print(
         "Orders delayed more than 3 days:",
-        delayed_more_than_3_days
+        metrics["delayed_more_than_3_days"]
     )
     print(
         "Orders delayed more than 7 days:",
-        delayed_more_than_7_days
+        metrics["delayed_more_than_7_days"]
     )
 
 

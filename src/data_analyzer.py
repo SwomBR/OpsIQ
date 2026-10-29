@@ -14,6 +14,26 @@ Analysis performed:
 """
 
 
+def count_orders_by_status(orders):
+    """Count how many orders belong to each status.
+
+    Returns:
+        dict[str, int]: The number of orders for each status.
+    """
+
+    status_counts = {}
+
+    for order in orders:
+        status = order.get("order_status", "unknown")
+
+        if status in status_counts:
+            status_counts[status] += 1
+        else:
+            status_counts[status] = 1
+
+    return status_counts
+
+
 def analyze_orders(orders):
     """Analyze orders and print a business summary."""
 
@@ -25,15 +45,7 @@ def analyze_orders(orders):
     total_orders = len(orders)
 
     # Count orders belonging to each status.
-    status_counts = {}
-
-    for order in orders:
-        status = order.get("order_status", "unknown")
-
-        if status in status_counts:
-            status_counts[status] += 1
-        else:
-            status_counts[status] = 1
+    status_counts = count_orders_by_status(orders)
 
     # Find the number of delivered orders.
     delivered_orders = status_counts.get("delivered", 0)

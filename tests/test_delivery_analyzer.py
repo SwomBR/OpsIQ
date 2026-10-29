@@ -20,7 +20,10 @@ import unittest
 from unittest.mock import patch
 from io import StringIO
 
-from src.delivery_analyzer import analyze_delivery_performance
+from src.delivery_analyzer import (
+    analyze_delivery_performance,
+    calculate_delivery_performance,
+)
 
 
 class TestDeliveryAnalyzer(unittest.TestCase):
@@ -145,6 +148,82 @@ class TestDeliveryAnalyzer(unittest.TestCase):
         self.assertIn("On-time orders: 1", report)
         self.assertIn("Late orders: 0", report)
         self.assertIn("On-time delivery percentage: 100.00%", report)
+
+
+class TestCalculateDeliveryPerformance(unittest.TestCase):
+    """Test the calculate_delivery_performance helper."""
+
+    def test_returns_all_metrics(self):
+        """Check every metric returned for a mix of orders."""
+
+        orders = [
+            {
+                "order_status": "delivered",
+                "order_delivered_customer_date": "2026-01-10 10:00:00",
+                "order_estimated_delivery_date": "2026-01-12 10:00:00",
+            },
+            {
+                "order_status": "delivered",
+                "order_delivered_customer_date": "2026-01-14 10:00:00",
+                "order_estimated_delivery_date": "2026-01-10 10:00:00",
+            },
+            {
+                "order_status": "delivered",
+                "order_delivered_customer_date": "2026-01-20 10:00:00",
+                "order_estimated_delivery_date": "2026-01-10 10:00:00",
+            },
+            {
+                "order_status": "delivered",
+                "order_delivered_customer_date": "",
+                "order_estimated_delivery_date": "2026-01-10 10:00:00",
+            },
+            {
+                "order_status": "shipped",
+                "order_delivered_customer_date": "",
+                "order_estimated_delivery_date": "2026-01-10 10:00:00",
+            },
+        ]
+
+        metrics = calculate_delivery_performance(orders)
+
+        self.assertEqual(metrics["delivered_orders_analyzed"], 3)
+        self.assertEqual(metrics["on_time_orders"], 1)
+        self.assertEqual(metrics["late_orders"], 2)
+        self.assertEqual(metrics["skipped_orders"], 1)
+        self.assertAlmostEqual(metrics["on_time_percentage"], 100 / 3)
+        self.assertAlmostEqual(metrics["late_percentage"], 200 / 3)
+        self.assertAlmostEqual(metrics["average_delay_days"], 7.0)
+        self.assertAlmostEqual(metrics["maximum_delay_days"], 10.0)
+        self.assertEqual(metrics["delayed_more_than_3_days"], 2)
+        self.assertEqual(metrics["delayed_more_than_7_days"], 1)
+
+    def test_no_late_orders_gives_zero_delays(self):
+        """Check that delays are zero when every order is on time."""
+
+        orders = [
+            {
+                "order_status": "delivered",
+                "order_delivered_customer_date": "2026-01-10 10:00:00",
+                "order_estimated_delivery_date": "2026-01-12 10:00:00",
+            }
+        ]
+
+        metrics = calculate_delivery_performance(orders)
+
+        self.assertEqual(metrics["late_percentage"], 0.0)
+        self.assertEqual(metrics["average_delay_days"], 0.0)
+        self.assertEqual(metrics["maximum_delay_days"], 0.0)
+
+    def test_empty_dataset_has_no_percentages(self):
+        """Check that percentages and delays are None without data."""
+
+        metrics = calculate_delivery_performance([])
+
+        self.assertEqual(metrics["delivered_orders_analyzed"], 0)
+        self.assertIsNone(metrics["on_time_percentage"])
+        self.assertIsNone(metrics["late_percentage"])
+        self.assertIsNone(metrics["average_delay_days"])
+        self.assertIsNone(metrics["maximum_delay_days"])
 
 
 if __name__ == "__main__":
