@@ -42,7 +42,7 @@ The most important design rule: **business calculations live in one place, `src/
 | React dashboard | **Done, working** (was further along than the old notes said) | 41 tests pass; lint and production build pass |
 | SQL database (SQLite) | **Done, optional** | `verify`: 33 of 33 metrics match Python |
 | CORS and caching | **Done** | CORS header checked live; cached responses ~5 ms |
-| CI (GitHub Actions) | **Written; first run happens with the handover push** | `.github/workflows/ci.yml` |
+| CI (GitHub Actions) | **Done, passing on GitHub** | First run passed on 29 Oct 2026 (run 40829727852) |
 | Deployment (Render) | **Prepared, not deployed** | `render.yaml`, `docs/DEPLOYMENT.md` |
 | AI business insights | **Not started** (idea only) | No AI code anywhere in the project |
 
@@ -173,7 +173,7 @@ React 19 + Vite 8, plain CSS, no chart library (bars are accessible HTML).
 
 | Item | Type | Notes |
 |---|---|---|
-| Check the first CI run on GitHub | **Pending — do first** | Open the repository's **Actions** tab. If it failed, read the log; it has only run locally before. |
+| Keep CI green | Ongoing | The first GitHub run passed (29 Oct 2026). Check the **Actions** tab after each push. |
 | Deploy to Render | **Pending** (needs your Render account) | Follow `docs/DEPLOYMENT.md`. Nothing has been deployed. |
 | Date and state filters | Optional feature | API query parameters + dashboard controls. |
 | Delay causes (by seller, state, category) | Optional feature | Shows *why* orders are late, not just which. |
@@ -374,7 +374,7 @@ git log -3 --oneline
 ## L. Recommended next steps, in order
 
 1. **Clone and set up** on the new computer (section H). Confirm 89 + 61 + 41 tests pass.
-2. **Check the CI run** in the GitHub Actions tab. Fix it first if it is red.
+2. **Check CI** in the GitHub Actions tab after your first push from the new computer.
 3. **Deploy** using `docs/DEPLOYMENT.md`, then add the live link to the README.
 4. Pick **one** feature from section E. Filters or delay causes are good next steps, and they use skills you already have.
 5. Only then consider the **AI briefing**. Keep the API key in a backend environment variable, never in Git or the frontend.
@@ -402,5 +402,5 @@ Habits to keep: small commits with clear messages, run all tests before every co
 - [x] Large/generated files confirmed ignored by Git
 - [x] Handover document written
 - [x] All source code and docs committed and pushed to GitHub
-- [ ] First CI run checked on GitHub (do this when you return)
+- [x] First CI run on GitHub passed (both jobs)
 - [ ] Deployment (not started; needs your Render account)

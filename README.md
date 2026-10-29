@@ -4,7 +4,7 @@
 
 ![OpsIQ dashboard](docs/screenshots/dashboard-overview.png)
 
-**Status:** Working locally end to end (CLI report, API, dashboard, SQLite). Deployment files are prepared but the app is **not deployed yet**. CI is configured but has **not run on GitHub yet**.
+**Status:** Working locally end to end (CLI report, API, dashboard, SQLite). CI passes on GitHub. Deployment files are prepared but the app is **not deployed yet**.
 
 **About "AI-Powered":** this is the long-term vision for the project. The current version uses **no artificial intelligence or machine learning**. Every number comes from rule-based Python and SQL calculations. An optional AI feature is described under [Future improvements](#future-improvements).
 
@@ -338,12 +338,12 @@ From the full dataset. The CLI report, API, dashboard, and SQL database all give
 
 ## CI/CD and deployment
 
-- **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs the Python, API, and frontend tests, the frontend lint, and the production build on every push and pull request. It uses only test data. The same steps were reproduced locally; the workflow has **not yet run on GitHub**.
+- **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs the Python, API, and frontend tests, the frontend lint, and the production build on every push and pull request. It uses only test data. The same steps were reproduced locally; the workflow passes on GitHub.
 - **Deployment:** [render.yaml](render.yaml) describes the API (Python web service) and dashboard (static site) on Render. During the build, the API downloads the public dataset from Kaggle; no credentials are needed. A production rehearsal (production settings, downloaded data, production build, strict CORS) passed locally. Step-by-step instructions, costs, and limits: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Limitations
 
-- **Not deployed yet;** CI has not run on GitHub yet.
+- **Not deployed yet.**
 - **Static data:** metrics describe the 2016–2018 dataset. New data requires restarting the API.
 - **No filters:** the dashboard shows whole-dataset totals; there is no date or region filter.
 - **Startup time:** the API takes about 10 seconds to calculate everything. On a free hosting plan, add about 1 minute when the service wakes up after 15 minutes without traffic.
